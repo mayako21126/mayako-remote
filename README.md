@@ -7,7 +7,7 @@
 [![NPM downloads](http://img.shields.io/npm/dm/mayako-remote.svg?style=flat-square)](http://www.npmtrends.com/mayako-remote)
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/mayako21126/mayako-remote.svg)](http://isitmaintained.com/project/mayako21126/mayako-remote "Percentage of issues still open")
 
-最好用的 `JS|TS` 第三方库脚手架
+非webpack5读取远程组件工具库
 
 ## :star: 特性
 
