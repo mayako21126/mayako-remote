@@ -1,0 +1,11 @@
+{
+    "name": "mayako-remote",
+    "npmname": "mayako-remote",
+    "umdname": "mayako-remote",
+    "username": "mayako21126",
+    "type": "js",
+    "module": "umd,esm,commonjs",
+    "test": null,
+    "lang": "zh",
+    "version": "1.6.0"
+}
