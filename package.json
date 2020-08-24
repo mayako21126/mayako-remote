@@ -1,7 +1,7 @@
 {
   "name": "mayako-remote",
-  "version": "0.1.0",
-  "description": "jslib最好用的js库脚手架",
+  "version": "0.1.1",
+  "description": "非webpack5读取远程组件工具库",
   "main": "dist/index.js",
   "jsnext:main": "dist/index.esm.js",
   "module": "dist/index.esm.js",
