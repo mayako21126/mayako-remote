@@ -4,8 +4,9 @@
  * @Autor: mayako
  * @Date: 2020-05-29 15:00:28
  * @LastEditors: mayako
- * @LastEditTime: 2020-08-20 14:56:02
+ * @LastEditTime: 2020-08-27 10:37:39
  */
+import axios from 'axios';
 export const asyncJsonp = (() => {
     const cacheMap = {};
     return (path, delay = 120) => {
@@ -31,7 +32,10 @@ export const asyncJsonp = (() => {
             };
 
             const timeout = setTimeout(() => {
-                onScriptComplete({ type: 'timeout', target: script });
+                onScriptComplete({
+                    type: 'timeout',
+                    target: script
+                });
             }, delay * 1000);
 
             script.onerror = script.onload = onScriptComplete;
@@ -40,23 +44,145 @@ export const asyncJsonp = (() => {
     };
 })();
 
-/**
- * @description: 从远程地址获取模块
- * @param {string} 远程包名
- * @param {string} 模块名
- * @param {string} 远程包地址
- * @return: 模块
- * @author: mayako
- */
-export async function getComponentFromRemote(remote, com, path) {
-    if (path && !window[remote]) {
-        await asyncJsonp(path);
+class Remote {
+    constructor(remoteList = []) {
+        this.remoteList = remoteList;
     }
-    const inputFactory = await window[remote].get(com);
-    return inputFactory().default;
+    // 初始化事件
+    init(remoteList = []) {
+    // loading是个promise对象用来判断读取状态
+        this.loading = this.loadConfig(remoteList);
+        // 用来承载每个新模块的加载promise对象
+        this.loadingMap = new Map();
+        this.remoteListMap = new Map();
+    }
+    // 根据remotelist读取配置表
+    loadConfig(remoteList = []) {
+    // 返回一个promise对象
+        return new Promise(async (resolve, reject) => {
+            if (remoteList.length > 0) {
+                this.mergeList(remoteList);
+            }
+            let tmp = [];
+            const CancelToken = axios.CancelToken;
+            // axios函数，用来取消请求
+            this.requestSource = CancelToken.source();
+            const self = this;
+            try {
+                const {
+                    data
+                } = await axios.post('https://service-mydzpk96-1251010224.gz.apigw.tencentcs.com/release/remote', {
+                    remoteList: self.remoteList
+                }, {
+                    cancelToken: self.requestSource.token
+                });
+                tmp = data;
+                // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
+                this.remoteListMap = this.mergeRemoteMapformList(this.remoteListMap, this.toMap(tmp));
+                // 根据配置文件载入远端配置表
+                await this.loadModules(this.remoteListMap);
+                return resolve();
+            } catch (e) {
+                console.log(e);
+                return reject();
+            }
+        });
+    }
+    loadModules(list) {
+        return new Promise((resolve, reject) => {
+            // 记录需要动态挂载的modules
+            const modules = [];
+            // 遍历读取加载模块
+            list.forEach((value, key) => {
+                if (!window[key]) {
+                    const pi = asyncJsonp(value);
+                    modules.push(pi);
+                }
+            });
+            Promise.all(modules).then(() => {
+                console.log('import finish');
+                resolve();
+            }).catch((e) => {
+                console.log(e);
+                reject();
+            });
+        });
+    }
+    // 合并传入的远端模块list
+    mergeList(tmp = []) {
+        this.remoteList = Array.from(new Set([
+            ...this.remoteList,
+            ...tmp
+        ]));
+    }
+    // 更新remoteListMap
+    mergeRemoteMap(value, key) {
+        this.remoteListMap.set(value, key);
+    }
+    // 合并remoteListMap
+    mergeRemoteMapformList(obj, src) {
+        for (const [k, v] of src) {
+            if (obj.has(k)) {
+                obj.set(k, obj.get(k));
+            } else {
+                obj.set(k, v);
+            }
+        }
+        return obj;
+    }
+    toMap(list) {
+        const map = new Map();
+        list.forEach((item, i) => {
+            map.set(Object.keys(item)[0], item[Object.keys(item)[0]]);
+        });
+        return map;
+    }
+    // 根据name获取对应远端路径
+    getPath(name) {
+        if (!this.remoteListMap) {
+            return '';
+        } else {
+            return this.remoteListMap[name];
+        }
+    }
+
+    /**
+   * @description: 从远程地址获取模块
+   * @param {string} 远程包名
+   * @param {string} 模块名
+   * @param {string} 远程包地址
+   * @return: 模块
+   * @author: mayako
+   */
+    async getComponentFromRemote(remote, com, path) {
+    // 等待初始加载
+
+        await this.loading;
+        if (this.loadingMap.get(remote)) {
+            await this.loadingMap.get(remote);
+        }
+        // 如果有地址且没有找到组件，则通过path远程加载
+        if (path && !window[remote]) {
+            this.mergeList([remote]);
+            this.mergeRemoteMap(remote, path);
+            const tmp = asyncJsonp(path);
+            this.loadingMap.set(remote, tmp);
+            await tmp;
+            this.loadingMap.delete(remote);
+        }
+        // 如果组件没有找到，且没有地址。则重新执行初始化
+        if (!path && !window[remote]) {
+            const tmp = this.loadConfig([remote]);
+            this.loadingMap.set(remote, tmp);
+            await tmp;
+            this.loadingMap.delete(remote);
+        }
+        const inputFactory = await window[remote].get(com);
+        return inputFactory().default;
+    }
 }
 
 export default {
-    getComponentFromRemote: getComponentFromRemote,
-    asyncJsonp: asyncJsonp
+    asyncJsonp: asyncJsonp,
+    Remote: Remote
 };

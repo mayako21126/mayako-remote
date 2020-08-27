@@ -51,6 +51,7 @@
     "rollup-plugin-uglify": "1.0.0"
   },
   "dependencies": {
-    "@babel/runtime": "^7.1.2"
+    "@babel/runtime": "^7.1.2",
+    "axios": "^0.20.0"
   }
 }
