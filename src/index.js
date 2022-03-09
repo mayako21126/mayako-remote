@@ -4,9 +4,10 @@
  * @Autor: mayako
  * @Date: 2020-05-29 15:00:28
  * @LastEditors: mayako
- * @LastEditTime: 2020-08-27 10:37:39
+ * @LastEditTime: 2020-08-28 15:42:37
  */
 import axios from 'axios';
+const urlC = 'https://service-mydzpk96-1251010224.gz.apigw.tencentcs.com/release/remote'; 
 export const asyncJsonp = (() => {
     const cacheMap = {};
     return (path, delay = 120) => {
@@ -45,8 +46,9 @@ export const asyncJsonp = (() => {
 })();
 
 class Remote {
-    constructor(remoteList = []) {
-        this.remoteList = remoteList;
+    constructor(url=urlC) {
+        this.remoteList = [];
+        this.url = url;
     }
     // 初始化事件
     init(remoteList = []) {
@@ -55,6 +57,7 @@ class Remote {
         // 用来承载每个新模块的加载promise对象
         this.loadingMap = new Map();
         this.remoteListMap = new Map();
+    
     }
     // 根据remotelist读取配置表
     loadConfig(remoteList = []) {
@@ -71,7 +74,7 @@ class Remote {
             try {
                 const {
                     data
-                } = await axios.post('https://service-mydzpk96-1251010224.gz.apigw.tencentcs.com/release/remote', {
+                } = await axios.post(self.url, {
                     remoteList: self.remoteList
                 }, {
                     cancelToken: self.requestSource.token
@@ -132,7 +135,7 @@ class Remote {
     }
     toMap(list) {
         const map = new Map();
-        list.forEach((item, i) => {
+        list.forEach((item) => {
             map.set(Object.keys(item)[0], item[Object.keys(item)[0]]);
         });
         return map;

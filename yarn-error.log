@@ -1,0 +1,81 @@
+Arguments: 
+  /usr/local/bin/node /usr/local/bin/yarn add esprima
+
+PATH: 
+  /Library/Frameworks/Python.framework/Versions/3.6/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/go/bin:/opt/X11/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Library/Frameworks/Python.framework/Versions/3.6/bin:/usr/local/sbin
+
+Yarn version: 
+  1.22.4
+
+Node version: 
+  16.13.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: ENOENT: no such file or directory, copyfile '/Users/toumakazu/Library/Caches/Yarn/v6/npm-ansi-escapes-4.3.2-6b2291d1db7d98b6521d5f1efa42d0f3a9feb65e-integrity/node_modules/ansi-escapes/index.d.ts' -> '/Users/toumakazu/project/mayako-remote/node_modules/@js-lib/cli/node_modules/ansi-escapes/index.d.ts'
+
+npm manifest: 
+  {
+    "name": "mayako-remote",
+    "version": "0.1.2",
+    "description": "非webpack5读取远程组件工具库",
+    "main": "dist/index.js",
+    "jsnext:main": "dist/index.esm.js",
+    "module": "dist/index.esm.js",
+    "sideEffects": false,
+    "scripts": {
+      "clean": "rimraf ./dist",
+      "test": "echo Error: missing tests",
+      "release": "npm test && npm run build && git commit -am $npm_package_version && git tag $npm_package_version && git push && git push --tags",
+      "lint": "eslint -c .eslintrc.js 'src/**/*.js'",
+      "lint:fix": "eslint --fix -c .eslintrc.js 'src/**/*.js' --fix",
+      "build:self": "rollup -c config/rollup.config.js",
+      "build:esm": "rollup -c config/rollup.config.esm.js",
+      "build": "npm run clean && npm run build:self && npm run build:esm"
+    },
+    "author": "mayako21126",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/mayako21126/mayako-remote.git"
+    },
+    "bugs": {
+      "url": "https://github.com/mayako21126/mayako-remote/issues"
+    },
+    "files": [
+      "/dist",
+      "*.d.ts"
+    ],
+    "engines": {
+      "node": ">= 0.12.0"
+    },
+    "devDependencies": {
+      "@babel/cli": "7.1.5",
+      "@babel/core": "^7.1.2",
+      "@babel/plugin-transform-runtime": "^7.1.0",
+      "@babel/preset-env": "^7.1.0",
+      "@js-lib/cli": "^1.6.0",
+      "axios": "^0.20.0",
+      "cross-env": "5.2.0",
+      "es5-shim": "4.5.10",
+      "eslint": "^5.15.1",
+      "rimraf": "2.6.2",
+      "rollup": "0.57.1",
+      "rollup-plugin-babel": "^4.0.3",
+      "rollup-plugin-commonjs": "8.3.0",
+      "rollup-plugin-node-resolve": "3.0.3",
+      "rollup-plugin-uglify": "1.0.0"
+    },
+    "dependencies": {
+      "@babel/runtime": "^7.1.2",
+      "axios": "^0.20.0"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
