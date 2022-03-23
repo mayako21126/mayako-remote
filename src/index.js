@@ -4,10 +4,11 @@
  * @Autor: mayako
  * @Date: 2020-05-29 15:00:28
  * @LastEditors: mayako
- * @LastEditTime: 2020-08-28 15:42:37
+ * @LastEditTime: 2022-03-23 16:39:25
  */
 import axios from 'axios';
-const urlC = 'https://service-mydzpk96-1251010224.gz.apigw.tencentcs.com/release/remote'; 
+const urlC =
+  'https://service-mydzpk96-1251010224.gz.apigw.tencentcs.com/release/remote';
 export const asyncJsonp = (() => {
     const cacheMap = {};
     return (path, delay = 120) => {
@@ -35,7 +36,7 @@ export const asyncJsonp = (() => {
             const timeout = setTimeout(() => {
                 onScriptComplete({
                     type: 'timeout',
-                    target: script
+                    target: script,
                 });
             }, delay * 1000);
 
@@ -46,9 +47,10 @@ export const asyncJsonp = (() => {
 })();
 
 class Remote {
-    constructor(url=urlC) {
+    constructor(env = 'development', url = urlC) {
         this.remoteList = [];
         this.url = url;
+        this.env = env;
     }
     // 初始化事件
     init(remoteList = []) {
@@ -57,7 +59,6 @@ class Remote {
         // 用来承载每个新模块的加载promise对象
         this.loadingMap = new Map();
         this.remoteListMap = new Map();
-    
     }
     // 根据remotelist读取配置表
     loadConfig(remoteList = []) {
@@ -71,23 +72,49 @@ class Remote {
             // axios函数，用来取消请求
             this.requestSource = CancelToken.source();
             const self = this;
-            try {
-                const {
-                    data
-                } = await axios.post(self.url, {
-                    remoteList: self.remoteList
-                }, {
-                    cancelToken: self.requestSource.token
-                });
-                tmp = data;
-                // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
-                this.remoteListMap = this.mergeRemoteMapformList(this.remoteListMap, this.toMap(tmp));
-                // 根据配置文件载入远端配置表
-                await this.loadModules(this.remoteListMap);
-                return resolve();
-            } catch (e) {
-                console.log(e);
-                return reject();
+            // 改这块逻辑
+            if (self.env !== 'development') {
+                try {
+                    remoteList.forEach(element => {
+                        tmp.push({
+                            element:location.origin+'/mod/'+element+'/remoteEntry.js'
+                        });
+                    });
+                    // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
+                    this.remoteListMap = this.mergeRemoteMapformList(
+                        this.remoteListMap,
+                        this.toMap(tmp)
+                    );
+                    // 根据配置文件载入远端配置表
+                    await this.loadModules(this.remoteListMap);
+                    return resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            } else {
+                try {
+                    const { data } = await axios.post(
+                        self.url,
+                        {
+                            remoteList: self.remoteList,
+                        },
+                        {
+                            cancelToken: self.requestSource.token,
+                        }
+                    );
+                    tmp = data;
+                    // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
+                    this.remoteListMap = this.mergeRemoteMapformList(
+                        this.remoteListMap,
+                        this.toMap(tmp)
+                    );
+                    // 根据配置文件载入远端配置表
+                    await this.loadModules(this.remoteListMap);
+                    return resolve();
+                } catch (e) {
+                    console.log(e);
+                    return reject();
+                }
             }
         });
     }
@@ -102,21 +129,20 @@ class Remote {
                     modules.push(pi);
                 }
             });
-            Promise.all(modules).then(() => {
-                console.log('import finish');
-                resolve();
-            }).catch((e) => {
-                console.log(e);
-                reject();
-            });
+            Promise.all(modules)
+                .then(() => {
+                    console.log('import finish');
+                    resolve();
+                })
+                .catch((e) => {
+                    console.log(e);
+                    reject();
+                });
         });
     }
     // 合并传入的远端模块list
     mergeList(tmp = []) {
-        this.remoteList = Array.from(new Set([
-            ...this.remoteList,
-            ...tmp
-        ]));
+        this.remoteList = Array.from(new Set([...this.remoteList, ...tmp]));
     }
     // 更新remoteListMap
     mergeRemoteMap(value, key) {
@@ -124,6 +150,9 @@ class Remote {
     }
     // 合并remoteListMap
     mergeRemoteMapformList(obj, src) {
+        if(!obj){
+            obj = new Map();
+        }
         for (const [k, v] of src) {
             if (obj.has(k)) {
                 obj.set(k, obj.get(k));
@@ -187,5 +216,5 @@ class Remote {
 
 export default {
     asyncJsonp: asyncJsonp,
-    Remote: Remote
+    Remote: Remote,
 };

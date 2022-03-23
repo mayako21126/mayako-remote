@@ -1,17 +1,119 @@
-/*
- * @Description: 
- * @Version: 2.0
- * @Autor: mayako
- * @Date: 2022-03-09 11:03:04
- * @LastEditors: mayako
- * @LastEditTime: 2022-03-09 11:31:52
- */
+#!/usr/bin/env node
+
 const fs = require('fs'); 
 const esprima = require('esprima');  
+const http = require('http');
+const estraverse = require('estraverse');
+const co = require('co');
+const path = require('path');
+const setting = require(path.resolve('settings.js'));
+const axios = require('axios');
 
+var dirPath = path.resolve(setting.basePath, 'mod');
 
+createDir(dirPath);
+getUrls(setting);
+function createDir(dirPath){
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath);
+        console.log('文件夹创建成功');
+    } else {
+        console.log('文件夹已存在');
+    }
+}
+function downFile(url, fileName) {
+    return new Promise(function (resolve, reject) {
+        http.get(url, function (response) {undefined;
+            response.setEncoding('binary');  //二进制binary
+            var Data = '';
+            response.on('data', function (data) {    //加载到内存
+                Data += data;
+            }).on('end', function () {  
+                fs.writeFile(fileName, Data , function () {undefined;
+                    console.log('ok');
+                    resolve('下载成功');
+                });
+            });
+        }).on('error',(e)=>{
+            reject(e);
+        });
 
-var code = fs.readFileSync('http://localhost:5000/remoteEntry.js'); 
-var ast = esprima.parse(code); 
+    });}
 
-console.log(ast.body[1].expression.right.callee.body.body[1].declarations[0].init.properties[0].value.body.body[0].declarations[0].init.properties);
+function downFileArray(base,files,modObjectName){
+    co(function* () {
+    //循环多线程下载
+        for (let i = 0; i <files.length; i++) {
+            console.log(files[i]);
+            let fileName = files[i]+'.'+files[i]+'.js';
+            let url = base+ files[i]+'.'+files[i]+'.js';
+            createDir(path.resolve(dirPath, modObjectName));
+            try {
+                yield downFile(url, path.resolve(dirPath+'/'+modObjectName, fileName));
+                console.log('下载成功' + fileName);
+            } catch (err) {
+                console.log(err);
+                break;
+            }
+        }
+    });
+}
+
+async function getUrls(setting) {
+    let list = [];
+    Object.keys(setting.mods).forEach(i => {
+        list.push(i);
+    });
+    let {data} = await axios({
+        method: 'POST',
+        url: setting.url,
+        data: {remoteList:list}
+    });
+    // 转为map对象的模组对象 如 buiness:[xx,xx,xx]
+    let modObjectMap = toMap(data);
+    Object.keys(setting.mods).forEach(i => {
+        if(setting.mods[i].length>0){
+            downMods(i,modObjectMap.get(i),setting.mods[i]);
+        }
+    });
+}
+function toMap(list) {
+    const map = new Map();
+    list.forEach((item) => {
+        map.set(Object.keys(item)[0], item[Object.keys(item)[0]]);
+    });
+    return map;
+}
+function downMods(modObjectName,url,mods){
+    http.get(url, function (response) {undefined;
+        response.setEncoding('binary');  //二进制binary
+        var Data = '';
+        response.on('data', function (data) {    //加载到内存
+            Data += data;
+        }).on('end', function () {          //加载完
+            var ast = esprima.parse(Data); 
+            // console.log(ast);
+            let modMap = new Map();
+            estraverse.traverse(ast, {  
+                enter: function (node,p) {
+                    if (node.type === 'Literal'&&mods.includes(node.value) ) {
+                        let args = p.value.body.body[0].argument.callee.object.arguments[0];
+                        if(args.type==='ArrayExpression'){
+                            let tempArray = [];
+                            args.elements.forEach(element => {
+                                tempArray.push(element.arguments[0].value);
+                            });
+                            modMap.set(node.value,tempArray);
+                        }else{
+                            modMap.set(node.value,[args.value]);
+                        }
+                    }  
+                }  
+            }); 
+            mods.forEach((name)=>{
+                downFileArray(url.replace('remoteEntry.js',''),modMap.get(name),modObjectName);
+            });
+            downFile(url, path.resolve(dirPath+'/'+modObjectName, 'remoteEntry.js'));
+        });
+    });
+}
