@@ -8,6 +8,7 @@ const co = require('co');
 const path = require('path');
 const setting = require(path.resolve('settings.js'));
 const axios = require('axios');
+const qs = require('qs');
 
 var dirPath = path.resolve(setting.basePath, 'mod');
 
@@ -65,12 +66,15 @@ async function getUrls(setting) {
         list.push(i);
     });
     let {data} = await axios({
-        method: 'POST',
+        method: 'Get',
         url: setting.url,
-        data: {remoteList:list}
+        params: {remoteList:list},
+        paramsSerializer :function(params){
+            return qs.stringify(params);
+        }
     });
     // 转为map对象的模组对象 如 buiness:[xx,xx,xx]
-    let modObjectMap = toMap(data);
+    let modObjectMap = toMap(data.data);
     Object.keys(setting.mods).forEach(i => {
         if(setting.mods[i].length>0){
             downMods(i,modObjectMap.get(i),setting.mods[i]);

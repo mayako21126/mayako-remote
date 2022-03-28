@@ -4,11 +4,12 @@
  * @Autor: mayako
  * @Date: 2020-05-29 15:00:28
  * @LastEditors: mayako
- * @LastEditTime: 2022-03-23 16:39:25
+ * @LastEditTime: 2022-03-28 18:22:03
  */
 import axios from 'axios';
+import qs from 'qs';
 const urlC =
-  'https://service-mydzpk96-1251010224.gz.apigw.tencentcs.com/release/remote';
+  'http://localhost:8001/admin/demo/open/getUrls';
 export const asyncJsonp = (() => {
     const cacheMap = {};
     return (path, delay = 120) => {
@@ -93,16 +94,15 @@ class Remote {
                 }
             } else {
                 try {
-                    const { data } = await axios.post(
-                        self.url,
-                        {
-                            remoteList: self.remoteList,
-                        },
-                        {
-                            cancelToken: self.requestSource.token,
+                    const { data } = await axios({
+                        method: 'Get',
+                        url: self.url,
+                        params: { remoteList: self.remoteList },
+                        paramsSerializer: function(params) {
+                            return qs.stringify(params);
                         }
-                    );
-                    tmp = data;
+                    });
+                    tmp = data.data;
                     // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
                     this.remoteListMap = this.mergeRemoteMapformList(
                         this.remoteListMap,
