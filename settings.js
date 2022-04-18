@@ -4,13 +4,13 @@
  * @Autor: mayako
  * @Date: 2019-11-22 09:29:04
  * @LastEditors: mayako
- * @LastEditTime: 2022-03-28 16:31:39
+ * @LastEditTime: 2022-04-14 15:07:05
  */
 module.exports = {
     basePath: '',
     mods: {
-        'business': ['remote', 'fff', 'Test', 'AppButton'],
-        'appRemote': []
+        'dps': ['License']
     },
+    Maximum:true,
     url: 'http://localhost:8001/admin/demo/open/getUrls'
 };

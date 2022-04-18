@@ -9,11 +9,17 @@ const path = require('path');
 const setting = require(path.resolve('settings.js'));
 const axios = require('axios');
 const qs = require('qs');
+const escodegen = require('escodegen');
+const { evaluate } = require('eval-estree-expression');
 
 var dirPath = path.resolve(setting.basePath, 'mod');
-
+let getPath = {};
+let chunkObj = {};
+let getCssPath = null;
+let chunkCssObj = {};
 createDir(dirPath);
 getUrls(setting);
+
 function createDir(dirPath){
     if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath);
@@ -21,6 +27,17 @@ function createDir(dirPath){
     } else {
         console.log('文件夹已存在');
     }
+}
+// 创建路径
+function writeFileRecursive(path, buffer, callback){
+    let lastPath = path.substring(0, path.lastIndexOf('/'));
+    fs.mkdir(lastPath, {recursive: true}, (err) => {
+        if (err) return callback(err);
+        fs.writeFile(path, buffer, function(err){
+            if (err) return callback(err);
+            return callback(null);
+        });
+    });
 }
 function downFile(url, fileName) {
     return new Promise(function (resolve, reject) {
@@ -30,7 +47,7 @@ function downFile(url, fileName) {
             response.on('data', function (data) {    //加载到内存
                 Data += data;
             }).on('end', function () {  
-                fs.writeFile(fileName, Data , function () {undefined;
+                writeFileRecursive(fileName, Data , function () {undefined;
                     console.log('ok');
                     resolve('下载成功');
                 });
@@ -41,13 +58,13 @@ function downFile(url, fileName) {
 
     });}
 
-function downFileArray(base,files,modObjectName){
+function downFileArray(base,files,modObjectName,getFn){
     co(function* () {
     //循环多线程下载
         for (let i = 0; i <files.length; i++) {
             console.log(files[i]);
-            let fileName = files[i]+'.'+files[i]+'.js';
-            let url = base+ files[i]+'.'+files[i]+'.js';
+            let fileName = './'+getFn(files[i]);
+            let url = base+ getFn(files[i]);
             createDir(path.resolve(dirPath, modObjectName));
             try {
                 yield downFile(url, path.resolve(dirPath+'/'+modObjectName, fileName));
@@ -88,6 +105,7 @@ function toMap(list) {
     });
     return map;
 }
+// downMods('','http://localhost:5006/test/remoteEntry.js',['License']);
 function downMods(modObjectName,url,mods){
     http.get(url, function (response) {undefined;
         response.setEncoding('binary');  //二进制binary
@@ -100,23 +118,78 @@ function downMods(modObjectName,url,mods){
             let modMap = new Map();
             estraverse.traverse(ast, {  
                 enter: function (node,p) {
-                    if (node.type === 'Literal'&&mods.includes(node.value) ) {
+                    if(node.type === 'MemberExpression'&&node.property){
+                        if(node.property.type==='Identifier'&&node.property.name==='u'){
+                            console.log(node);
+                            const options = {
+                                functions: true,
+                                generate: escodegen.generate
+                            };
+                            if(p.right&&p.right.type==='FunctionExpression'){
+                                getPath = evaluate.sync(p.right,{},options);
+                                chunkObj = evaluate.sync(p.right.body.body[0].argument.left.right.object);
+                            }
+                            
+                        }
+                    }
+                    if(node.type === 'MemberExpression'&&node.property){
+                        if(node.property.type==='Identifier'&&node.property.name==='miniCssF'){
+                            console.log(node);
+                            const options = {
+                                functions: true,
+                                generate: escodegen.generate
+                            };
+                            if(p.right){
+                                getCssPath = evaluate.sync(p.right,{},options);
+                            }
+                          
+                        }
+                    }
+                    if(node.type === 'MemberExpression'&&node.property){
+                        if(node.property.type==='Identifier'&&node.property.name==='miniCss'){
+                            console.log(node);
+                            const options = {
+                                functions: true,
+                                generate: escodegen.generate
+                            };
+                            if(p.right){
+                                chunkCssObj = evaluate.sync(p.right.body.body[0].declarations[0].init,{},options);
+                            }
+                        
+                        }
+                    }
+                    if ((node.type === 'Literal'||node.type==='Identifier')&&(mods.includes(node.value)||mods.includes(node.name)) ) {
                         let args = p.value.body.body[0].argument.callee.object.arguments[0];
                         if(args.type==='ArrayExpression'){
                             let tempArray = [];
                             args.elements.forEach(element => {
                                 tempArray.push(element.arguments[0].value);
                             });
-                            modMap.set(node.value,tempArray);
+                            modMap.set(node.value||node.name,tempArray);
                         }else{
-                            modMap.set(node.value,[args.value]);
+                            modMap.set(node.value||node.name,[args.value]);
                         }
                     }  
-                }  
-            }); 
-            mods.forEach((name)=>{
-                downFileArray(url.replace('remoteEntry.js',''),modMap.get(name),modObjectName);
+                }
             });
+            if(setting.Maximum){
+                Object.keys(chunkObj).forEach((key) => {
+                    downFileArray(url.replace('remoteEntry.js',''),[key],modObjectName,getPath);
+                });
+                if(getCssPath){
+                    Object.keys(chunkCssObj).forEach((key) => {
+                        downFileArray(url.replace('remoteEntry.js',''),[key],modObjectName,getCssPath);
+                    });
+                }
+            }else{
+                mods.forEach((key)=>{
+                    downFileArray(url.replace('remoteEntry.js',''),modMap.get(key),modObjectName,getPath);
+                    if(getCssPath&&chunkCssObj[key]===1){
+                        downFileArray(url.replace('remoteEntry.js',''),[key],modObjectName,getCssPath);
+                    }
+                });
+
+            }
             downFile(url, path.resolve(dirPath+'/'+modObjectName, 'remoteEntry.js'));
         });
     });
