@@ -1,3 +1,11 @@
+/*
+ * @Description: 
+ * @Version: 2.0
+ * @Autor: mayako
+ * @Date: 2020-08-20 14:54:13
+ * @LastEditors: mayako
+ * @LastEditTime: 2022-08-15 15:47:46
+ */
 var babel = require('rollup-plugin-babel');
 
 var pkg = require('../package.json');
@@ -31,11 +39,7 @@ function getCompiler(opt) {
         ],
         plugins: [
             [
-                '@babel/plugin-transform-runtime',
-                {
-                    'helpers': false,
-                    'regenerator': false
-                }
+                '@babel/plugin-transform-runtime'
             ]
         ],
         runtimeHelpers: true,

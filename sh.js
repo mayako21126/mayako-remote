@@ -42,7 +42,11 @@ function writeFileRecursive(path, buffer, callback){
 function downFile(url, fileName) {
     return new Promise(function (resolve, reject) {
         http.get(url, function (response) {undefined;
-            response.setEncoding('binary');  //二进制binary
+            if(url.indexOf('.js')>0||url.indexOf('.csss')>0){
+                response.setEncoding('utf-8');
+            }else{
+                response.setEncoding('binary');  //二进制binary
+            }
             var Data = '';
             response.on('data', function (data) {    //加载到内存
                 Data += data;

@@ -4,12 +4,11 @@
  * @Autor: mayako
  * @Date: 2020-05-29 15:00:28
  * @LastEditors: mayako
- * @LastEditTime: 2022-03-28 18:22:03
+ * @LastEditTime: 2022-08-16 14:01:24
  */
 import axios from 'axios';
 import qs from 'qs';
-const urlC =
-  'http://localhost:8001/admin/demo/open/getUrls';
+const urlC = 'http://localhost:8001/admin/demo/open/getUrls';
 export const asyncJsonp = (() => {
     const cacheMap = {};
     return (path, delay = 120) => {
@@ -17,11 +16,14 @@ export const asyncJsonp = (() => {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.charset = 'utf-8';
+            script.type = 'text/javascript';
+            script.async = true;
             script.timeout = delay;
             script.src = path;
 
-            const onScriptComplete = (event) => {
-                script.onerror = script.onload = null;
+            const onScriptComplete = event => {
+                // script.onerror = script.onload = null
+                // console.log('errorload')
                 clearTimeout(timeout);
                 if (event.type === 'load') {
                     cacheMap[path] = true;
@@ -37,21 +39,26 @@ export const asyncJsonp = (() => {
             const timeout = setTimeout(() => {
                 onScriptComplete({
                     type: 'timeout',
-                    target: script,
+                    target: script
                 });
             }, delay * 1000);
 
-            script.onerror = script.onload = onScriptComplete;
+            script.onerror = onScriptComplete;
             document.head.appendChild(script);
+            script.onload = onScriptComplete;
+            script.onfaild = () => {
+                reject();
+            };
         });
     };
 })();
 
 class Remote {
-    constructor(env = 'development', url = urlC) {
+    constructor(env = 'development', url = urlC, path) {
         this.remoteList = [];
         this.url = url;
         this.env = env;
+        this.path = path?path:null;
     }
     // 初始化事件
     init(remoteList = []) {
@@ -77,15 +84,18 @@ class Remote {
             if (self.env !== 'development') {
                 try {
                     remoteList.forEach(element => {
+                        let host = '';
+                        if(self.path){
+                            host = self.path;
+                        }else{
+                            host =  window.__POWERED_BY_QIANKUN__ ? window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__ : location.origin + '/';
+                        }
                         tmp.push({
-                            element:location.origin+'/mod/'+element+'/remoteEntry.js'
+                            element: host + 'mod/' + element + '/remoteEntry.js'
                         });
                     });
                     // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
-                    this.remoteListMap = this.mergeRemoteMapformList(
-                        this.remoteListMap,
-                        this.toMap(tmp)
-                    );
+                    this.remoteListMap = this.mergeRemoteMapformList(this.remoteListMap, this.toMap(tmp));
                     // 根据配置文件载入远端配置表
                     await this.loadModules(this.remoteListMap);
                     return resolve();
@@ -98,16 +108,13 @@ class Remote {
                         method: 'Get',
                         url: self.url,
                         params: { remoteList: self.remoteList },
-                        paramsSerializer: function(params) {
+                        paramsSerializer: function (params) {
                             return qs.stringify(params);
                         }
                     });
                     tmp = data.data;
                     // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
-                    this.remoteListMap = this.mergeRemoteMapformList(
-                        this.remoteListMap,
-                        this.toMap(tmp)
-                    );
+                    this.remoteListMap = this.mergeRemoteMapformList(this.remoteListMap, this.toMap(tmp));
                     // 根据配置文件载入远端配置表
                     await this.loadModules(this.remoteListMap);
                     return resolve();
@@ -131,10 +138,10 @@ class Remote {
             });
             Promise.all(modules)
                 .then(() => {
-                    console.log('import finish');
+                    console.log('import modules finish');
                     resolve();
                 })
-                .catch((e) => {
+                .catch(e => {
                     console.log(e);
                     reject();
                 });
@@ -150,7 +157,7 @@ class Remote {
     }
     // 合并remoteListMap
     mergeRemoteMapformList(obj, src) {
-        if(!obj){
+        if (!obj) {
             obj = new Map();
         }
         for (const [k, v] of src) {
@@ -164,7 +171,7 @@ class Remote {
     }
     toMap(list) {
         const map = new Map();
-        list.forEach((item) => {
+        list.forEach(item => {
             map.set(Object.keys(item)[0], item[Object.keys(item)[0]]);
         });
         return map;
@@ -188,6 +195,16 @@ class Remote {
    */
     async getComponentFromRemote(remote, com, path) {
     // 等待初始加载
+    // return async () => {
+    //   // Initializes the share scope. This fills it with known provided modules from this build and all remotes
+    //   await __webpack_init_sharing__('default');
+    //   const container = window[scope]; // or get the container somewhere else
+    //   // Initialize the container, it may provide shared modules
+    //   await container.init(__webpack_share_scopes__.default);
+    //   const factory = await window[scope].get(module);
+    //   const Module = factory();
+    //   return Module;
+    // };
 
         await this.loading;
         if (this.loadingMap.get(remote)) {
@@ -209,12 +226,15 @@ class Remote {
             await tmp;
             this.loadingMap.delete(remote);
         }
+        await __webpack_init_sharing__('default');
+        const container = window[remote];
+        await container.init(__webpack_share_scopes__.default);
         const inputFactory = await window[remote].get(com);
-        return inputFactory().default;
+        return inputFactory();
     }
 }
 
 export default {
     asyncJsonp: asyncJsonp,
-    Remote: Remote,
+    Remote: Remote
 };

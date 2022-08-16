@@ -1,6 +1,6 @@
 {
   "name": "mayako-remote",
-  "version": "0.2.3",
+  "version": "0.2.6",
   "description": "非webpack5读取远程组件工具库",
   "main": "dist/index.js",
   "jsnext:main": "dist/index.esm.js",
@@ -41,17 +41,17 @@
   "devDependencies": {
     "@babel/cli": "7.1.5",
     "@babel/core": "^7.1.2",
-    "@babel/plugin-transform-runtime": "^7.1.0",
+    "@babel/plugin-transform-runtime": "^7.18.10",
     "@babel/preset-env": "^7.1.0",
     "@js-lib/cli": "^1.6.0",
     "axios": "^0.20.0",
     "cross-env": "5.2.0",
     "es5-shim": "4.5.10",
     "escodegen": "^2.0.0",
+    "eslint": "^5.15.1",
     "esprima": "^4.0.1",
     "estraverse": "^5.3.0",
     "eval-estree-expression": "^1.1.0",
-    "eslint": "^5.15.1",
     "rimraf": "2.6.2",
     "rollup": "0.57.1",
     "rollup-plugin-babel": "^4.0.3",
@@ -60,7 +60,7 @@
     "rollup-plugin-uglify": "1.0.0"
   },
   "dependencies": {
-    "@babel/runtime": "^7.1.2",
+    "@babel/runtime": "^7.18.9",
     "axios": "^0.20.0",
     "co": "^4.6.0",
     "escodegen": "^2.0.0",
