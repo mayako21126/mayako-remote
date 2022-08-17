@@ -1,7 +1,7 @@
 {
   "name": "mayako-remote",
-  "version": "0.2.6",
-  "description": "非webpack5读取远程组件工具库",
+  "version": "0.2.7",
+  "description": "远程模块加载器",
   "main": "dist/index.js",
   "jsnext:main": "dist/index.esm.js",
   "module": "dist/index.esm.js",

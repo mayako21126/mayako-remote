@@ -1,10 +1,11 @@
+/* eslint-disable no-undef */
 /*
  * @Description:
  * @Version: 2.0
  * @Autor: mayako
  * @Date: 2020-05-29 15:00:28
  * @LastEditors: mayako
- * @LastEditTime: 2022-08-16 14:01:24
+ * @LastEditTime: 2022-08-17 15:03:55
  */
 import axios from 'axios';
 import qs from 'qs';
@@ -54,11 +55,15 @@ export const asyncJsonp = (() => {
 })();
 
 class Remote {
-    constructor(env = 'development', url = urlC, path) {
+    constructor(env = 'development', options = {}) {
         this.remoteList = [];
-        this.url = url;
+        // 模块管理api
+        this.url = options.url || urlC;
         this.env = env;
-        this.path = path?path:null;
+        // 自定义访问host
+        this.host = options.host || null;
+        // 需要手动定义地址的path集合
+        this.modPaths = options.modPaths || [];
     }
     // 初始化事件
     init(remoteList = []) {
@@ -81,18 +86,25 @@ class Remote {
             this.requestSource = CancelToken.source();
             const self = this;
             // 改这块逻辑
-            if (self.env !== 'development') {
+            // 分为3种逻辑，一种是走远端模块管理的接口，有一个总的模块管理中心，一种是离线构建模式(默认构建地址是根据qiankun判断的，也可以通过传入options.host参数设置)，一种是手动定义模块的链接地址(取决于是否有modpaths)
+            if (self.env !== 'console') {
                 try {
                     remoteList.forEach(element => {
                         let host = '';
-                        if(self.path){
-                            host = self.path;
-                        }else{
-                            host =  window.__POWERED_BY_QIANKUN__ ? window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__ : location.origin + '/';
+                        if (self.host) {
+                            host = self.host;
+                        } else {
+                            host = window.__POWERED_BY_QIANKUN__ ? window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__ : location.origin + '/';
                         }
-                        tmp.push({
-                            element: host + 'mod/' + element + '/remoteEntry.js'
-                        });
+                        if (self.modPaths[element]) {
+                            tmp.push({
+                                element: self.modPaths[element]
+                            });
+                        } else {
+                            tmp.push({
+                                element: host + 'mod/' + element + '/remoteEntry.js'
+                            });
+                        }
                     });
                     // 转为map对象，remoteListMap是包含远端模块名和地址的map对象
                     this.remoteListMap = this.mergeRemoteMapformList(this.remoteListMap, this.toMap(tmp));
