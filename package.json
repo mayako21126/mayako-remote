@@ -1,6 +1,6 @@
 {
   "name": "mayako-remote",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "远程模块加载器",
   "main": "dist/index.js",
   "jsnext:main": "dist/index.esm.js",
