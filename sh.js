@@ -48,7 +48,7 @@ function downFile(url, fileName) {
     return new Promise(function (resolve, reject) {
         http.get(url, function (response) {
             undefined;
-            if (url.indexOf('.js') > 0 || url.indexOf('.csss') > 0) {
+            if (url.indexOf('.js') > 0 || url.indexOf('.css') > 0) {
                 response.setEncoding('utf-8');
             } else {
                 response.setEncoding('binary'); //二进制binary
